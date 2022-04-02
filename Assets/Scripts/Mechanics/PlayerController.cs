@@ -45,15 +45,20 @@ namespace Platformer.Mechanics
         public AudioSource audioSource;
 
         public Health health;
+        public double attackRange = 1;
 
         public bool controlEnabled = true;
         private readonly PlatformerModel model = GetModel<PlatformerModel>();
         internal Animator animator;
 
         private bool jump;
+        public Collider2D attackSpace;
         private Vector2 move;
         private SpriteRenderer spriteRenderer;
         private bool stopJump;
+
+        public bool Attacking => animator.GetBool("attacking");
+
 
         public Bounds Bounds => collider2d.bounds;
 
@@ -84,9 +89,19 @@ namespace Platformer.Mechanics
 
             UpdateJumpState();
             if (Input.GetKeyDown(KeyCode.G)) health.Decrement();
-
+            if (Input.GetKeyDown(KeyCode.F))
+            {
+                Attack();
+                animator.InterruptMatchTarget(true);
+            }
 
             base.Update();
+        }
+
+        private void Attack()
+        {
+           animator.SetTrigger("attack");
+           
         }
 
         private void UpdateJumpState()
