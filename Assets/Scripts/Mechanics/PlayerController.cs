@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Platformer.Gameplay;
 using Platformer.Model;
 using TMPro;
@@ -43,21 +44,28 @@ namespace Platformer.Mechanics
 
         /*internal new*/
         public AudioSource audioSource;
+        public LayerMask enemyLayer;
 
         public Health health;
-        public double attackRange = 1;
+        public float attackRange = 1;
 
         public bool controlEnabled = true;
-        private readonly PlatformerModel model = GetModel<PlatformerModel>();
-        internal Animator animator;
+        public Transform attackPoint;
 
+        internal Animator animator;
+        private readonly PlatformerModel model = GetModel<PlatformerModel>();
         private bool jump;
-        public Collider2D attackSpace;
+
         private Vector2 move;
         private SpriteRenderer spriteRenderer;
         private bool stopJump;
+        private bool attackPointFlipX = false;
+        private static readonly int attack = Animator.StringToHash("attack");
+        private static readonly int grounded = Animator.StringToHash("grounded");
+        private static readonly int velocityX = Animator.StringToHash("velocityX");
+        private static readonly int attacking = Animator.StringToHash("attacking");
 
-        public bool Attacking => animator.GetBool("attacking");
+        public bool Attacking => animator.GetBool(attacking);
 
 
         public Bounds Bounds => collider2d.bounds;
@@ -92,7 +100,6 @@ namespace Platformer.Mechanics
             if (Input.GetKeyDown(KeyCode.F))
             {
                 Attack();
-                animator.InterruptMatchTarget(true);
             }
 
             base.Update();
@@ -100,8 +107,27 @@ namespace Platformer.Mechanics
 
         private void Attack()
         {
-           animator.SetTrigger("attack");
-           
+            animator.SetTrigger(attack);
+            
+            var attackpoint =
+                new Vector2(attackPoint.position.x - (attackPointFlipX ? 0 : attackPoint.localPosition.x * 2),
+                    attackPoint.position.y);
+            var enemies = Physics2D.OverlapCircleAll(attackpoint, attackRange,
+                enemyLayer);
+            foreach (var enemy in enemies)
+            {
+                var enemyController = enemy.GetComponent<EnemyController>();
+
+                Schedule<PlayerEnemyAttack>().enemy = enemyController;
+            }
+        }
+
+        void OnDrawGizmosSelected()
+        {
+            if (attackPoint is null)
+                return;
+
+            Gizmos.DrawWireSphere(attackPoint.position, attackRange);
         }
 
         private void UpdateJumpState()
@@ -150,12 +176,18 @@ namespace Platformer.Mechanics
             }
 
             if (move.x > 0.01f)
+            {
+                attackPointFlipX = false;
                 spriteRenderer.flipX = false;
+            }
             else if (move.x < -0.01f)
+            {
+                attackPointFlipX = true;
                 spriteRenderer.flipX = true;
+            }
 
-            animator.SetBool("grounded", IsGrounded);
-            animator.SetFloat("velocityX", Mathf.Abs(velocity.x) / maxSpeed);
+            animator.SetBool(grounded, IsGrounded);
+            animator.SetFloat(velocityX, Mathf.Abs(velocity.x) / maxSpeed);
 
             targetVelocity = move * maxSpeed;
         }
