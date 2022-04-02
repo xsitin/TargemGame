@@ -17,8 +17,7 @@ namespace Platformer.Gameplay
 
         public override void Execute()
         {
-            var attack = player.Attacking && player.attackSpace.IsTouching(enemy._collider);
-            var willHurtEnemy = attack || player.Bounds.center.y >= enemy.Bounds.max.y;
+            var willHurtEnemy = player.Bounds.center.y >= enemy.Bounds.max.y;
 
             if (willHurtEnemy)
             {

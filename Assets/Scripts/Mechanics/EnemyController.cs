@@ -8,7 +8,7 @@ namespace Platformer.Mechanics
     ///     A simple controller for enemies. Provides movement control over a patrol path.
     /// </summary>
     [RequireComponent(typeof(AnimationController), typeof(Collider2D))]
-    public class EnemyController : MonoBehaviour
+    public class EnemyController : KinematicObject
     {
         public PatrolPath path;
         public AudioClip ouch;
@@ -20,6 +20,7 @@ namespace Platformer.Mechanics
         private SpriteRenderer spriteRenderer;
 
         public Bounds Bounds => _collider.bounds;
+        public Health health;
 
         private void Awake()
         {
@@ -27,15 +28,17 @@ namespace Platformer.Mechanics
             _collider = GetComponent<Collider2D>();
             _audio = GetComponent<AudioSource>();
             spriteRenderer = GetComponent<SpriteRenderer>();
+            health = GetComponent<Health>();
         }
 
-        private void Update()
+        protected override void Update()
         {
             if (path != null)
             {
                 if (mover == null) mover = path.CreateMover(control.maxSpeed * 0.5f);
                 control.move.x = Mathf.Clamp(mover.Position.x - transform.position.x, -1, 1);
             }
+            base.Update();
         }
 
         private void OnCollisionEnter2D(Collision2D collision)

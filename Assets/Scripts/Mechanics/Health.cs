@@ -46,11 +46,11 @@ namespace Platformer.Mechanics
         public void Decrement()
         {
             currentHP = Mathf.Clamp(currentHP - 1, 0, maxHP);
-            if (currentHP == 0)
-            {
-                var ev = Schedule<HealthIsZero>();
-                ev.health = this;
-            }
+            // if (currentHP == 0)
+            // {
+            //     var ev = Schedule<HealthIsZero>();
+            //     ev.health = this;
+            // }
         }
 
         /// <summary>
