@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Platformer.Gameplay;
 using Platformer.Model;
@@ -22,6 +23,15 @@ namespace Platformer.Mechanics
             InFlight,
             Landed
         }
+
+        public static class AnimatorObjects
+        {
+            public static readonly int Attack = Animator.StringToHash("attack");
+            public static readonly int Grounded = Animator.StringToHash("grounded");
+            public static readonly int VelocityX = Animator.StringToHash("velocityX");
+            public static readonly int Attacking = Animator.StringToHash("attacking");
+        }
+
 
         public AudioClip jumpAudio;
         public AudioClip respawnAudio;
@@ -59,13 +69,10 @@ namespace Platformer.Mechanics
         private Vector2 move;
         private SpriteRenderer spriteRenderer;
         private bool stopJump;
-        private bool attackPointFlipX = false;
-        private static readonly int attack = Animator.StringToHash("attack");
-        private static readonly int grounded = Animator.StringToHash("grounded");
-        private static readonly int velocityX = Animator.StringToHash("velocityX");
-        private static readonly int attacking = Animator.StringToHash("attacking");
+        private bool attackPointFlipX;
+        private HashSet<Collider2D> attackedEnemy = new();
 
-        public bool Attacking => animator.GetBool(attacking);
+        public bool Attacking => animator.GetBool(AnimatorObjects.Attacking);
 
 
         public Bounds Bounds => collider2d.bounds;
@@ -97,30 +104,34 @@ namespace Platformer.Mechanics
 
             UpdateJumpState();
             if (Input.GetKeyDown(KeyCode.G)) health.Decrement();
-            if (Input.GetKeyDown(KeyCode.F))
-            {
-                Attack();
-            }
+            if (Input.GetKeyDown(KeyCode.F)) Attack();
+            AttackedUpdate();
 
             base.Update();
         }
 
-        private void Attack()
+        private void AttackedUpdate()
         {
-            animator.SetTrigger(attack);
-            
-            var attackpoint =
-                new Vector2(attackPoint.position.x - (attackPointFlipX ? 0 : attackPoint.localPosition.x * 2),
-                    attackPoint.position.y);
-            var enemies = Physics2D.OverlapCircleAll(attackpoint, attackRange,
-                enemyLayer);
-            foreach (var enemy in enemies)
+            if (Attacking)
             {
-                var enemyController = enemy.GetComponent<EnemyController>();
-
-                Schedule<PlayerEnemyAttack>().enemy = enemyController;
+                var flippedAttackPoint =
+                    new Vector2(attackPoint.position.x - (attackPointFlipX ? attackPoint.localPosition.x * 2 : 0),
+                        attackPoint.position.y);
+                var enemies = Physics2D.OverlapCircleAll(flippedAttackPoint, attackRange,
+                    enemyLayer);
+                foreach (var enemy in enemies)
+                {
+                    if (attackedEnemy.Contains(enemy)) continue;
+                    var enemyController = enemy.GetComponent<EnemyController>();
+                    Schedule<PlayerEnemyAttack>().enemy = enemyController;
+                    attackedEnemy.Add(enemy);
+                }
             }
+            else if (attackedEnemy.Count > 0)
+                attackedEnemy.Clear();
         }
+    
+        private void Attack() => animator.SetTrigger(AnimatorObjects.Attack);
 
         void OnDrawGizmosSelected()
         {
@@ -186,8 +197,8 @@ namespace Platformer.Mechanics
                 spriteRenderer.flipX = true;
             }
 
-            animator.SetBool(grounded, IsGrounded);
-            animator.SetFloat(velocityX, Mathf.Abs(velocity.x) / maxSpeed);
+            animator.SetBool(AnimatorObjects.Grounded, IsGrounded);
+            animator.SetFloat(AnimatorObjects.VelocityX, Mathf.Abs(velocity.x) / maxSpeed);
 
             targetVelocity = move * maxSpeed;
         }
