@@ -1,52 +1,49 @@
-﻿using Platformer.Gameplay;
+using Platformer.Gameplay;
+using Platformer.Mechanics;
 using UnityEngine;
 using static Platformer.Core.Simulation;
 
-namespace Platformer.Mechanics
+[RequireComponent(typeof(Collider2D))]
+public class EnemyController : MonoBehaviour
 {
     /// <summary>
     ///     A simple controller for enemies. Provides movement control over a patrol path.
     /// </summary>
-    [RequireComponent(typeof(AnimationController), typeof(Collider2D))]
-    public class EnemyController : MonoBehaviour
+    public AudioClip ouch;
+
+    public AudioSource _audio;
+    public Collider2D _collider;
+    public Rigidbody2D _rigidbody;
+
+    private SpriteRenderer spriteRenderer;
+
+    public Bounds Bounds => _collider.bounds;
+    public Health health;
+
+    private void Awake()
     {
-        public PatrolPath path;
-        public AudioClip ouch;
-        internal AudioSource _audio;
-        internal Collider2D _collider;
-        internal AnimationController control;
+        _collider = GetComponent<Collider2D>();
+        _audio = GetComponent<AudioSource>();
+        _rigidbody = GetComponent<Rigidbody2D>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        health = GetComponent<Health>();
+    }
 
-        internal PatrolPath.Mover mover;
-        private SpriteRenderer spriteRenderer;
 
-        public Bounds Bounds => _collider.bounds;
+    public void PushFromAttack(Vector2 from)
+    {
+        var force = (Vector2) transform.position - from;
+        _rigidbody.AddForce(force.normalized * 30);
+    }
 
-        private void Awake()
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        var player = collision.gameObject.GetComponent<PlayerController>();
+        if (player != null)
         {
-            control = GetComponent<AnimationController>();
-            _collider = GetComponent<Collider2D>();
-            _audio = GetComponent<AudioSource>();
-            spriteRenderer = GetComponent<SpriteRenderer>();
-        }
-
-        private void Update()
-        {
-            if (path != null)
-            {
-                if (mover == null) mover = path.CreateMover(control.maxSpeed * 0.5f);
-                control.move.x = Mathf.Clamp(mover.Position.x - transform.position.x, -1, 1);
-            }
-        }
-
-        private void OnCollisionEnter2D(Collision2D collision)
-        {
-            var player = collision.gameObject.GetComponent<PlayerController>();
-            if (player != null)
-            {
-                var ev = Schedule<PlayerEnemyCollision>();
-                ev.player = player;
-                ev.enemy = this;
-            }
+            var ev = Schedule<PlayerEnemyCollision>();
+            ev.player = player;
+            ev.enemy = this;
         }
     }
 }
