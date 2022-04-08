@@ -14,11 +14,14 @@ public class EnemyController : MonoBehaviour
     public AudioSource _audio;
     public Collider2D _collider;
     public Rigidbody2D _rigidbody;
+    public PatrolPath path;
+    public float maxSpeed = 1f;
 
     private SpriteRenderer spriteRenderer;
 
     public Bounds Bounds => _collider.bounds;
     public Health health;
+    internal PatrolPath.Mover mover;
 
     private void Awake()
     {
@@ -32,8 +35,8 @@ public class EnemyController : MonoBehaviour
 
     public void PushFromAttack(Vector2 from)
     {
-        var force = (Vector2) transform.position - from;
-        _rigidbody.AddForce(force.normalized * 30);
+        var force = (Vector2)transform.position - from;
+        _rigidbody.AddForce(force.normalized * 40);
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -45,5 +48,17 @@ public class EnemyController : MonoBehaviour
             ev.player = player;
             ev.enemy = this;
         }
+    }
+
+    private void Update()
+    {
+        if (path == null) return;
+        if (mover == null)
+        {
+            mover = path.CreateMover(maxSpeed * 0.5f);
+            mover.transform = transform;
+        }
+
+        _rigidbody.velocity += mover.GetDelta;
     }
 }
