@@ -1,33 +1,35 @@
-﻿using Platformer.Core;
-using Platformer.Mechanics;
-using Platformer.Model;
+﻿using Platformer.Mechanics;
 using UnityEngine;
 using static Platformer.Core.Simulation;
 
 namespace Platformer.Gameplay
 {
     public class PlayerEnemyAttack : Event<PlayerEnemyAttack>
-    {  
-        public EnemyController enemy;
+    {
+        public EnemyController Enemy;
+        public PlayerController Player;
 
-        private PlatformerModel model = GetModel<PlatformerModel>();
-        public PlayerController player;
         public override void Execute()
         {
-            var enemyHealth = enemy.GetComponent<Health>();
+            var enemyHealth = Enemy.health;
             if (enemyHealth != null)
             {
                 enemyHealth.Decrement();
                 if (!enemyHealth.IsAlive)
+                    Schedule<EnemyDeath>().enemy = Enemy;
+                else
                 {
-                    Schedule<EnemyDeath>().enemy = enemy;
+                    if (Enemy._audio && Enemy.ouch)
+                        Enemy._audio
+                            .PlayOneShot(Enemy
+                                .ouch); //math.sign(Player.transform.position.x - Enemy.transform.position.x) * 10
+                    Enemy.PushFromAttack(Player.transform.position);
                 }
             }
             else
-            {
-                Schedule<EnemyDeath>().enemy = enemy;
-            }
-            Debug.Log($"hit {enemy.name}");
+                Schedule<EnemyDeath>().enemy = Enemy;
+
+            Debug.Log($"hit {Enemy.name}");
         }
     }
 }

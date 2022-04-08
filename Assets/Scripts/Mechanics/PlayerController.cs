@@ -6,6 +6,7 @@ using Platformer.Model;
 using TMPro;
 using UnityEngine;
 using static Platformer.Core.Simulation;
+using Event = UnityEngine.Event;
 
 namespace Platformer.Mechanics
 {
@@ -105,32 +106,29 @@ namespace Platformer.Mechanics
             UpdateJumpState();
             if (Input.GetKeyDown(KeyCode.G)) health.Decrement();
             if (Input.GetKeyDown(KeyCode.F)) Attack();
-            AttackedUpdate();
+            if (attackedEnemy.Count > 0 && !Attacking) attackedEnemy.Clear();
 
             base.Update();
         }
 
-        private void AttackedUpdate()
+        public void AttackedUpdate()
         {
-            if (Attacking)
+            var flippedAttackPoint =
+                new Vector2(attackPoint.position.x - (attackPointFlipX ? attackPoint.localPosition.x * 2 : 0),
+                    attackPoint.position.y);
+            var attackedEnemies = Physics2D.OverlapCircleAll(flippedAttackPoint, attackRange,
+                enemyLayer);
+            foreach (var enemy in attackedEnemies)
             {
-                var flippedAttackPoint =
-                    new Vector2(attackPoint.position.x - (attackPointFlipX ? attackPoint.localPosition.x * 2 : 0),
-                        attackPoint.position.y);
-                var enemies = Physics2D.OverlapCircleAll(flippedAttackPoint, attackRange,
-                    enemyLayer);
-                foreach (var enemy in enemies)
-                {
-                    if (attackedEnemy.Contains(enemy)) continue;
-                    var enemyController = enemy.GetComponent<EnemyController>();
-                    Schedule<PlayerEnemyAttack>().enemy = enemyController;
-                    attackedEnemy.Add(enemy);
-                }
+                if (attackedEnemy.Contains(enemy)) continue;
+                var enemyController = enemy.GetComponent<EnemyController>();
+                var ev = Schedule<PlayerEnemyAttack>();
+                ev.Enemy = enemyController;
+                ev.Player = this;
+                attackedEnemy.Add(enemy);
             }
-            else if (attackedEnemy.Count > 0)
-                attackedEnemy.Clear();
         }
-    
+
         private void Attack() => animator.SetTrigger(AnimatorObjects.Attack);
 
         void OnDrawGizmosSelected()
