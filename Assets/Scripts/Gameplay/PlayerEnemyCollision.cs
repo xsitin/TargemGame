@@ -1,5 +1,4 @@
 using Platformer.Mechanics;
-using Platformer.Model;
 using static Platformer.Core.Simulation;
 
 namespace Platformer.Gameplay
@@ -12,7 +11,6 @@ namespace Platformer.Gameplay
     {
         public EnemyController enemy;
 
-        private PlatformerModel model = GetModel<PlatformerModel>();
         public PlayerController player;
 
         public override void Execute()
@@ -33,6 +31,8 @@ namespace Platformer.Gameplay
                     else
                     {
                         player.Bounce(7);
+                        if (enemy._audio && enemy.ouch)
+                            enemy._audio.PlayOneShot(enemy.ouch);
                     }
                 }
                 else
