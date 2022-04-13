@@ -1,5 +1,6 @@
 using System.Collections;
 using Platformer.Core;
+using UnityEngine;
 
 namespace Platformer.Gameplay
 {
@@ -13,6 +14,8 @@ namespace Platformer.Gameplay
 
         public override void Execute()
         {
+            enemy.path = null;
+            enemy.mover = null;
             enemy._collider.enabled = false;
             if (enemy._audio && enemy.ouch)
                 enemy._audio.PlayOneShot(enemy.ouch);
@@ -22,7 +25,11 @@ namespace Platformer.Gameplay
         private IEnumerator FallCoroutine()
         {
             while (enemy.transform.position.y > -100)
+            {
+                enemy._rigidbody.velocity = enemy._rigidbody.velocity + Vector2.down;
                 yield return null;
+            }
+
             enemy.gameObject.SetActive(false);
         }
     }
