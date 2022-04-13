@@ -1,5 +1,4 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Platformer.Mechanics
 {
@@ -7,12 +6,12 @@ namespace Platformer.Mechanics
     {
         public class Mover
         {
+            private readonly Vector2 endPosition;
+            private readonly float speed;
+            private readonly Vector2 startPosition;
             private float p;
             private bool toStartPosition;
-            private readonly float speed;
             public Transform transform;
-            private readonly Vector2 endPosition;
-            private readonly Vector2 startPosition;
 
             public Mover(PatrolPath path, float speed)
             {
@@ -40,7 +39,7 @@ namespace Platformer.Mechanics
                         return ComputeVelocity();
                     }
 
-                    return ComputeVelocity() * Time.deltaTime;
+                    return ComputeVelocity() * Time.fixedDeltaTime;
                 }
             }
 

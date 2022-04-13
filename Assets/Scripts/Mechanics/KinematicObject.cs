@@ -157,7 +157,7 @@ namespace Platformer.Mechanics
                     else
                     {
                         //We are airborne, but hit something, so cancel vertical up and horizontal velocity.
-                        velocity.x *= 0;
+                        velocity.x = 0;
                         velocity.y = Mathf.Min(velocity.y, 0);
                     }
 
