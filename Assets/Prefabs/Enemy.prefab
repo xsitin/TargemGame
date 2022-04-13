@@ -255,7 +255,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffad43bb006db4856a9c527b89b48db9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHP: 3
+  maxHP: 1
 --- !u!114 &2103583553
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -272,4 +272,6 @@ MonoBehaviour:
   _audio: {fileID: 0}
   _collider: {fileID: 0}
   _rigidbody: {fileID: 1702612949800919892}
+  path: {fileID: 0}
+  maxSpeed: 1
   health: {fileID: 2103583545}

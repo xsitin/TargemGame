@@ -9,12 +9,12 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - enemy
+  - Enemy
   - Water
   - UI
-  - 
-  - 
-  - 
+  - HookPoints
+  - Player
+  - Grid
   - 
   - 
   - 

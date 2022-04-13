@@ -1,12 +1,11 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Platformer.Gameplay;
 using Platformer.Model;
-using TMPro;
 using UnityEngine;
 using static Platformer.Core.Simulation;
-using Event = UnityEngine.Event;
 
 namespace Platformer.Mechanics
 {
@@ -25,18 +24,11 @@ namespace Platformer.Mechanics
             Landed
         }
 
-        public static class AnimatorObjects
-        {
-            public static readonly int Attack = Animator.StringToHash("attack");
-            public static readonly int Grounded = Animator.StringToHash("grounded");
-            public static readonly int VelocityX = Animator.StringToHash("velocityX");
-            public static readonly int Attacking = Animator.StringToHash("attacking");
-        }
-
 
         public AudioClip jumpAudio;
         public AudioClip respawnAudio;
         public AudioClip ouchAudio;
+        public float dashDistance;
 
         /// <summary>
         ///     Max horizontal speed of the player.
@@ -58,20 +50,23 @@ namespace Platformer.Mechanics
         public LayerMask enemyLayer;
 
         public Health health;
-        public float attackRange = 1;
+        public float attackRange;
+        public float dashTimeout;
 
         public bool controlEnabled = true;
         public Transform attackPoint;
+        public float HookRange;
+        private readonly HashSet<Collider2D> attackedEnemy = new();
+        private readonly PlatformerModel model = GetModel<PlatformerModel>();
 
         internal Animator animator;
-        private readonly PlatformerModel model = GetModel<PlatformerModel>();
+        private bool attackPointFlipX;
+        private bool dashReady = true;
         private bool jump;
 
         private Vector2 move;
         private SpriteRenderer spriteRenderer;
         private bool stopJump;
-        private bool attackPointFlipX;
-        private HashSet<Collider2D> attackedEnemy = new();
 
         public bool Attacking => animator.GetBool(AnimatorObjects.Attacking);
 
@@ -91,9 +86,12 @@ namespace Platformer.Mechanics
         {
             if (controlEnabled)
             {
-                move.x = Input.GetAxis("Horizontal");
+                var input = Input.GetAxis("Horizontal");
+                move.x = Math.Abs(move.x) > Math.Abs(input) ? 0 : input;
                 if (jumpState == JumpState.Grounded && Input.GetButtonDown("Jump"))
+                {
                     jumpState = JumpState.PrepareToJump;
+                }
                 else if (Input.GetButtonUp("Jump"))
                 {
                     stopJump = true;
@@ -101,14 +99,97 @@ namespace Platformer.Mechanics
                 }
             }
             else
+            {
                 move.x = 0;
+            }
 
             UpdateJumpState();
-            if (Input.GetKeyDown(KeyCode.G)) health.Decrement();
-            if (Input.GetKeyDown(KeyCode.F)) Attack();
+            InputUpdate();
             if (attackedEnemy.Count > 0 && !Attacking) attackedEnemy.Clear();
 
             base.Update();
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (attackPoint is not null)
+                Gizmos.DrawWireSphere(attackPoint.position, attackRange);
+            Gizmos.DrawWireSphere(transform.position, HookRange);
+        }
+
+        private void InputUpdate()
+        {
+            if (Input.GetKeyDown(KeyCode.G)) Schedule<PlayerDeath>();
+            if (Input.GetKeyDown(KeyCode.F)) Attack();
+            if (Input.GetButtonDown("Dash") && dashReady) Dash();
+            if (Input.GetButtonDown("Hook")) Hook();
+        }
+
+        private void Dash()
+        {
+            dashReady = false;
+            var dashVector = attackPointFlipX ? Vector2.left : Vector2.right;
+            dashVector *= 10;
+            StartCoroutine(DashVelocity(dashVector));
+            StartCoroutine(DashTimeout());
+        }
+
+        private IEnumerator DashVelocity(Vector2 dashVector)
+        {
+            var begin = transform.position.x;
+            while (Math.Abs(transform.position.x - begin) < dashDistance &&
+                   Physics2D.RaycastAll(
+                       transform.position,
+                       attackPointFlipX ? Vector2.left : Vector2.right, 1
+                       , LayerMask.GetMask("Enemy", "Grid")).Length <= 0)
+            {
+                targetVelocity += dashVector;
+                yield return null;
+            }
+        }
+
+        private IEnumerator DashTimeout()
+        {
+            yield return new WaitForSeconds(dashTimeout);
+            dashReady = true;
+        }
+
+        private void Hook()
+        {
+            var point = FindHookPoint();
+            if (!point.HasValue)
+                return;
+            StartCoroutine(HookCoroutine(point.Value));
+        }
+
+        private IEnumerator HookCoroutine(Vector2 to)
+        {
+            while (Input.GetButton("Hook"))
+            {
+                var direction = (to - (Vector2)transform.position).normalized;
+                velocity.y += direction.y;
+                targetVelocity.x += direction.x * 10;
+                yield return null;
+            }
+        }
+
+        private Vector2? FindHookPoint()
+        {
+            var points = Physics2D.OverlapCircleAll(transform.position, HookRange)
+                .Where(x => x.gameObject.name == "HookPoint").ToArray();
+            if (points.Length < 1)
+                return null;
+
+            var orderedByDistancePoints = points
+                .Select(x => (x, Vector2.Distance(x.transform.position, transform.position)))
+                .OrderBy(y => y.Item2).ToArray();
+            if (Math.Abs(orderedByDistancePoints[0].Item2 - orderedByDistancePoints[1].Item2) < 0.5f)
+                return !(attackPointFlipX ^ (orderedByDistancePoints[0].x.transform.position.x <
+                                             orderedByDistancePoints[1].x.transform.position.x))
+                    ? orderedByDistancePoints[0].x.transform.position
+                    : orderedByDistancePoints[1].x.transform.position;
+
+            return orderedByDistancePoints[0].x.transform.position;
         }
 
         public void AttackedUpdate()
@@ -129,14 +210,9 @@ namespace Platformer.Mechanics
             }
         }
 
-        private void Attack() => animator.SetTrigger(AnimatorObjects.Attack);
-
-        void OnDrawGizmosSelected()
+        private void Attack()
         {
-            if (attackPoint is null)
-                return;
-
-            Gizmos.DrawWireSphere(attackPoint.position, attackRange);
+            animator.SetTrigger(AnimatorObjects.Attack);
         }
 
         private void UpdateJumpState()
@@ -181,7 +257,7 @@ namespace Platformer.Mechanics
             else if (stopJump)
             {
                 stopJump = false;
-                if (velocity.y > 0) velocity.y = velocity.y * model.jumpDeceleration;
+                if (velocity.y > 0) velocity.y *= model.jumpDeceleration;
             }
 
             if (move.x > 0.01f)
@@ -198,7 +274,16 @@ namespace Platformer.Mechanics
             animator.SetBool(AnimatorObjects.Grounded, IsGrounded);
             animator.SetFloat(AnimatorObjects.VelocityX, Mathf.Abs(velocity.x) / maxSpeed);
 
-            targetVelocity = move * maxSpeed;
+            targetVelocity += move * maxSpeed;
+            move.x = 0;
+        }
+
+        public static class AnimatorObjects
+        {
+            public static readonly int Attack = Animator.StringToHash("attack");
+            public static readonly int Grounded = Animator.StringToHash("grounded");
+            public static readonly int VelocityX = Animator.StringToHash("velocityX");
+            public static readonly int Attacking = Animator.StringToHash("attacking");
         }
     }
 }
