@@ -166,7 +166,7 @@ namespace Platformer.Mechanics
         {
             while (Input.GetButton("Hook"))
             {
-                var direction = (to - (Vector2)transform.position).normalized;
+                var direction = (to - (Vector2) transform.position).normalized;
                 velocity.y += direction.y;
                 targetVelocity.x += direction.x * 10;
                 yield return null;
@@ -175,15 +175,15 @@ namespace Platformer.Mechanics
 
         private Vector2? FindHookPoint()
         {
-            var points = Physics2D.OverlapCircleAll(transform.position, HookRange)
-                .Where(x => x.gameObject.name == "HookPoint").ToArray();
+            var points = Physics2D.OverlapCircleAll(transform.position, HookRange, LayerMask.GetMask("HookPoints"));
             if (points.Length < 1)
                 return null;
 
             var orderedByDistancePoints = points
                 .Select(x => (x, Vector2.Distance(x.transform.position, transform.position)))
                 .OrderBy(y => y.Item2).ToArray();
-            if (Math.Abs(orderedByDistancePoints[0].Item2 - orderedByDistancePoints[1].Item2) < 0.5f)
+            if (orderedByDistancePoints.Length < 2 ||
+                Math.Abs(orderedByDistancePoints[0].Item2 - orderedByDistancePoints[1].Item2) < 0.5f)
                 return !(attackPointFlipX ^ (orderedByDistancePoints[0].x.transform.position.x <
                                              orderedByDistancePoints[1].x.transform.position.x))
                     ? orderedByDistancePoints[0].x.transform.position
