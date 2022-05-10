@@ -19,16 +19,15 @@ public class EnemyController : MonoBehaviour
     public Health health;
     internal PatrolPath.Mover mover;
 
-    private SpriteRenderer spriteRenderer;
-
     public Bounds Bounds => _collider.bounds;
 
     private void Awake()
     {
         _collider = GetComponent<Collider2D>();
         _audio = GetComponent<AudioSource>();
+        _audio.volume = FindObjectOfType<SoundController>().EffectsVolume;
         _rigidbody = GetComponent<Rigidbody2D>();
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        GetComponent<SpriteRenderer>();
         health = GetComponent<Health>();
     }
 
