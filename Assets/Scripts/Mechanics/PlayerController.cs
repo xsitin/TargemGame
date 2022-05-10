@@ -77,6 +77,7 @@ namespace Platformer.Mechanics
         {
             health = GetComponent<Health>();
             audioSource = GetComponent<AudioSource>();
+            audioSource.volume = FindObjectOfType<SoundController>().EffectsVolume;
             collider2d = GetComponent<Collider2D>();
             spriteRenderer = GetComponent<SpriteRenderer>();
             animator = GetComponent<Animator>();
@@ -166,7 +167,7 @@ namespace Platformer.Mechanics
         {
             while (Input.GetButton("Hook"))
             {
-                var direction = (to - (Vector2) transform.position).normalized;
+                var direction = (to - (Vector2)transform.position).normalized;
                 velocity.y += direction.y;
                 targetVelocity.x += direction.x * 10;
                 yield return null;
