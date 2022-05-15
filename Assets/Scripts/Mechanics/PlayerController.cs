@@ -9,6 +9,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 using static Platformer.Core.Simulation;
+using Object = UnityEngine.Object;
 
 namespace Platformer.Mechanics
 {
@@ -27,7 +28,7 @@ namespace Platformer.Mechanics
             Landed
         }
 
-
+        public GameObject smokeBombPrefab;
         public AudioClip jumpAudio;
         public AudioClip respawnAudio;
         public AudioClip ouchAudio;
@@ -73,6 +74,7 @@ namespace Platformer.Mechanics
         private bool stopJump;
         private new Rigidbody2D rigidbody2D;
         private readonly LinkedList<bool> isGroundedValues = new();
+        private Vector2 flippedAttackPoint;
 
         public bool IsGrounded
         {
@@ -115,6 +117,10 @@ namespace Platformer.Mechanics
                 hookLine.positionCount = 2;
                 hookLine.SetPositions(new[] { new Vector3(hookPoint.x, hookPoint.y, 1), transform.position });
             }
+
+            flippedAttackPoint =
+                new Vector2(attackPoint.position.x - (attackPointFlipX ? attackPoint.localPosition.x * 2 : 0),
+                    attackPoint.position.y);
         }
 
 
@@ -162,6 +168,16 @@ namespace Platformer.Mechanics
             if (Input.GetKeyDown(KeyCode.F)) Attack();
             if (Input.GetButtonDown("Dash") && dashReady) Dash();
             if (Input.GetButtonDown("Hook")) Hook();
+            if (Input.GetButtonDown("SmokeBomb")) ThrowSmokeBomb();
+        }
+
+        private void ThrowSmokeBomb()
+        {
+            var smokeBomb = Instantiate(smokeBombPrefab, flippedAttackPoint, Quaternion.identity);
+            var rigidbody2D = smokeBomb.GetComponent<Rigidbody2D>();
+            var force = attackPointFlipX ? Vector2.left : Vector2.right;
+            force *= 10;
+            rigidbody2D.AddForce(force, ForceMode2D.Impulse);
         }
 
         private void Dash()
@@ -244,9 +260,6 @@ namespace Platformer.Mechanics
 
         public void AttackedUpdate()
         {
-            var flippedAttackPoint =
-                new Vector2(attackPoint.position.x - (attackPointFlipX ? attackPoint.localPosition.x * 2 : 0),
-                    attackPoint.position.y);
             var attackedEnemies = Physics2D.OverlapCircleAll(flippedAttackPoint, attackRange,
                 enemyLayer);
             foreach (var enemy in attackedEnemies)
