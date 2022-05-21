@@ -6,6 +6,7 @@ using Platformer.Core;
 using Platformer.Gameplay;
 using Platformer.Model;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 using static Platformer.Core.Simulation;
@@ -60,8 +61,10 @@ namespace Platformer.Mechanics
         public bool controlEnabled = true;
         public Transform attackPoint;
         public float HookRange;
+        public Ray CheckGround;
         private readonly HashSet<Collider2D> attackedEnemy = new();
         private readonly PlatformerModel model = GetModel<PlatformerModel>();
+        private RaycastHit2D[] raycastResult = new RaycastHit2D[1];
 
         internal Animator animator;
         private bool attackPointFlipX;
@@ -75,6 +78,8 @@ namespace Platformer.Mechanics
         private new Rigidbody2D rigidbody2D;
         private readonly LinkedList<bool> isGroundedValues = new();
         private Vector2 flippedAttackPoint;
+        private ContactFilter2D gridFilter;
+
 
         public bool IsGrounded
         {
@@ -93,6 +98,7 @@ namespace Platformer.Mechanics
 
         private void Start()
         {
+            gridFilter = new ContactFilter2D() { layerMask = LayerMask.GetMask("Grid") };
             rigidbody2D = GetComponent<Rigidbody2D>();
             health = GetComponent<Health>();
             audioSource = GetComponent<AudioSource>();
@@ -150,7 +156,9 @@ namespace Platformer.Mechanics
 
         private void FixedUpdate()
         {
-            IsGrounded = rigidbody2D.IsTouchingLayers(LayerMask.GetMask("Grid"));
+            var count = rigidbody2D.Cast(Vector2.down, gridFilter,
+                raycastResult, 0.05f);
+            IsGrounded = count > 0;
             ComputeVelocity();
             UpdateJumpState();
         }
@@ -160,6 +168,7 @@ namespace Platformer.Mechanics
             if (attackPoint is not null)
                 Gizmos.DrawWireSphere(attackPoint.position, attackRange);
             Gizmos.DrawWireSphere(transform.position, HookRange);
+            Gizmos.DrawRay(CheckGround);
         }
 
         private void PerformAdditionalAbilities()
