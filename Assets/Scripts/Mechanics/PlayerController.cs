@@ -142,7 +142,8 @@ namespace Platformer.Mechanics
             else if (Math.Abs(input) > Math.Abs(rigidbody2D.velocity.x) ||
                      Math.Sign(input) != Math.Sign(rigidbody2D.velocity.x))
 
-                rigidbody2D.velocity = rigidbody2D.velocity.WithX(input + rigidbody2D.velocity.x);
+                rigidbody2D.velocity =
+                    rigidbody2D.velocity.WithX(Mathf.Clamp(input + rigidbody2D.velocity.x, -maxSpeed, maxSpeed));
 
             if (jumpState == JumpState.Grounded && Input.GetButtonDown("Jump"))
                 jumpState = JumpState.PrepareToJump;
