@@ -6,11 +6,7 @@ using Platformer.Core;
 using Platformer.Gameplay;
 using Platformer.Model;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.UI;
-using UnityEngine.UIElements;
 using static Platformer.Core.Simulation;
-using Object = UnityEngine.Object;
 
 namespace Platformer.Mechanics
 {
@@ -25,6 +21,8 @@ namespace Platformer.Mechanics
             Grounded,
             PrepareToJump,
             Jumping,
+            Hooked,
+            FixedOnHook,
             InFlight,
             Landed
         }
@@ -47,10 +45,8 @@ namespace Platformer.Mechanics
 
         public JumpState jumpState = JumpState.Grounded;
 
-        /*internal new*/
         public Collider2D collider2d;
 
-        /*internal new*/
         public AudioSource audioSource;
         public LayerMask enemyLayer;
 
@@ -61,7 +57,14 @@ namespace Platformer.Mechanics
         public bool controlEnabled = true;
         public Transform attackPoint;
         public float HookRange;
-        public Ray CheckGround;
+
+
+        public bool IsGrounded { get; set; }
+
+        public bool Attacking => animator.GetBool(AnimatorObjects.Attacking);
+
+
+        public Bounds Bounds => collider2d.bounds;
         private readonly HashSet<Collider2D> attackedEnemy = new();
         private readonly PlatformerModel model = GetModel<PlatformerModel>();
         private RaycastHit2D[] raycastResult = new RaycastHit2D[1];
@@ -76,25 +79,9 @@ namespace Platformer.Mechanics
         private SpriteRenderer spriteRenderer;
         private bool stopJump;
         private new Rigidbody2D rigidbody2D;
-        private readonly LinkedList<bool> isGroundedValues = new();
         private Vector2 flippedAttackPoint;
         private ContactFilter2D gridFilter;
 
-
-        public bool IsGrounded
-        {
-            get => isGroundedValues.Any(x => x);
-            private set
-            {
-                if (isGroundedValues.Count >= 5) isGroundedValues.RemoveFirst();
-                isGroundedValues.AddLast(value);
-            }
-        }
-
-        public bool Attacking => animator.GetBool(AnimatorObjects.Attacking);
-
-
-        public Bounds Bounds => collider2d.bounds;
 
         private void Start()
         {
@@ -127,6 +114,7 @@ namespace Platformer.Mechanics
             flippedAttackPoint =
                 new Vector2(attackPoint.position.x - (attackPointFlipX ? attackPoint.localPosition.x * 2 : 0),
                     attackPoint.position.y);
+            Debug.Log(Enum.GetName(typeof(JumpState), jumpState));
         }
 
 
@@ -145,7 +133,7 @@ namespace Platformer.Mechanics
                 rigidbody2D.velocity =
                     rigidbody2D.velocity.WithX(Mathf.Clamp(input + rigidbody2D.velocity.x, -maxSpeed, maxSpeed));
 
-            if (jumpState == JumpState.Grounded && Input.GetButtonDown("Jump"))
+            if (jumpState is JumpState.Grounded or JumpState.FixedOnHook && Input.GetButtonDown("Jump"))
                 jumpState = JumpState.PrepareToJump;
 
             else if (Input.GetButtonUp("Jump"))
@@ -157,19 +145,20 @@ namespace Platformer.Mechanics
 
         private void FixedUpdate()
         {
-            var count = rigidbody2D.Cast(Vector2.down, gridFilter,
+            var intersectionsCount = rigidbody2D.Cast(Vector2.down, gridFilter,
                 raycastResult, 0.05f);
-            IsGrounded = count > 0;
-            ComputeVelocity();
+            IsGrounded = intersectionsCount > 0;
+
             UpdateJumpState();
+            ComputeVelocity();
         }
+
 
         private void OnDrawGizmosSelected()
         {
             if (attackPoint is not null)
                 Gizmos.DrawWireSphere(attackPoint.position, attackRange);
             Gizmos.DrawWireSphere(transform.position, HookRange);
-            Gizmos.DrawRay(CheckGround);
         }
 
         private void PerformAdditionalAbilities()
@@ -194,7 +183,7 @@ namespace Platformer.Mechanics
         {
             dashReady = false;
             var dashVector = attackPointFlipX ? Vector2.left : Vector2.right;
-            dashVector *= 3;
+            dashVector *= dashDistance;
             rigidbody2D.MovePosition(rigidbody2D.position + dashVector);
             if (dashTimeout > 0) StartCoroutine(DashTimeout());
             else dashReady = true;
@@ -208,6 +197,9 @@ namespace Platformer.Mechanics
 
         private void Hook()
         {
+            if (jumpState == JumpState.FixedOnHook)
+                return;
+            jumpState = JumpState.Hooked;
             var point = FindHookPoint();
             if (point == null)
                 return;
@@ -220,9 +212,11 @@ namespace Platformer.Mechanics
 
         private IEnumerator HookCoroutine(DistanceJoint2D joint)
         {
-            while (Input.GetButton("Hook"))
+            while (jumpState is JumpState.Hooked or JumpState.FixedOnHook && Input.GetButton("Hook"))
             {
                 joint.distance = Math.Clamp(joint.distance - 0.08f, 0f, 1000f);
+                if (joint.distance <= 0.01)
+                    jumpState = JumpState.FixedOnHook;
                 yield return new WaitForFixedUpdate();
             }
 
@@ -236,6 +230,7 @@ namespace Platformer.Mechanics
 
             hookJoint = null;
             hookLine.positionCount = 0;
+            jumpState = JumpState.InFlight;
             Destroy(joint);
         }
 
@@ -319,7 +314,7 @@ namespace Platformer.Mechanics
 
         protected void ComputeVelocity()
         {
-            if (jump && IsGrounded)
+            if (jump && (IsGrounded || jumpState == JumpState.Jumping))
             {
                 rigidbody2D.AddForce(new Vector2(0, jumpTakeOffSpeed * model.jumpModifier), ForceMode2D.Impulse);
                 jump = false;
