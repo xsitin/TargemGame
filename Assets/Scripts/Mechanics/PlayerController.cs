@@ -199,10 +199,10 @@ namespace Platformer.Mechanics
         {
             if (jumpState == JumpState.FixedOnHook)
                 return;
-            jumpState = JumpState.Hooked;
             var point = FindHookPoint();
             if (point == null)
                 return;
+            jumpState = JumpState.Hooked;
             var joint = gameObject.AddComponent<DistanceJoint2D>();
             joint.distance = Vector2.Distance(point.transform.position, transform.position);
             joint.connectedBody = point.GetComponent<Rigidbody2D>();
