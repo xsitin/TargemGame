@@ -114,7 +114,7 @@ namespace Platformer.Mechanics
             flippedAttackPoint =
                 new Vector2(attackPoint.position.x - (attackPointFlipX ? attackPoint.localPosition.x * 2 : 0),
                     attackPoint.position.y);
-            Debug.Log(Enum.GetName(typeof(JumpState), jumpState));
+            //Debug.Log(Enum.GetName(typeof(JumpState), jumpState));
         }
 
 
@@ -270,9 +270,9 @@ namespace Platformer.Mechanics
             foreach (var enemy in attackedEnemies)
             {
                 if (attackedEnemy.Contains(enemy)) continue;
-                var enemyController = enemy.GetComponent<EnemyController>();
+                var enemyController = enemy.GetComponent<BaseEnemy>();
                 var ev = Schedule<PlayerEnemyAttack>();
-                ev.Enemy = enemyController;
+                ev.BaseEnemy = enemyController;
                 ev.Player = this;
                 attackedEnemy.Add(enemy);
             }

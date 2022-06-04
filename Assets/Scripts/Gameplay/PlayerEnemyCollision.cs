@@ -9,8 +9,6 @@ namespace Platformer.Gameplay
     /// <typeparam name="EnemyCollision"></typeparam>
     public class PlayerEnemyCollision : Event<PlayerEnemyCollision>
     {
-        public EnemyController enemy;
-
         public PlayerController player;
 
         public override void Execute()

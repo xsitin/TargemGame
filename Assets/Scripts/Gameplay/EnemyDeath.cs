@@ -1,5 +1,5 @@
-using System.Collections;
 using Platformer.Core;
+using Platformer.Mechanics;
 using UnityEngine;
 
 namespace Platformer.Gameplay
@@ -10,27 +10,15 @@ namespace Platformer.Gameplay
     /// <typeparam name="EnemyDeath"></typeparam>
     public class EnemyDeath : Simulation.Event<EnemyDeath>
     {
-        public EnemyController enemy;
+        public BaseEnemy enemy;
+        private static readonly int die = Animator.StringToHash("Die");
 
         public override void Execute()
         {
-            enemy.path = null;
-            enemy.mover = null;
-            enemy._collider.enabled = false;
+            enemy.GetComponent<Collider2D>().enabled = false;
             if (enemy._audio && enemy.ouch)
                 enemy._audio.PlayOneShot(enemy.ouch);
-            enemy.StartCoroutine(FallCoroutine());
-        }
-
-        private IEnumerator FallCoroutine()
-        {
-            while (enemy.transform.position.y > -100)
-            {
-                enemy._rigidbody.velocity = enemy._rigidbody.velocity + Vector2.down;
-                yield return null;
-            }
-
-            enemy.gameObject.SetActive(false);
+            enemy.GetComponent<Animator>().SetTrigger(die);
         }
     }
 }
