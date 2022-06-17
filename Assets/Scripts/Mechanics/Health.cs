@@ -1,6 +1,4 @@
-using Platformer.Gameplay;
 using UnityEngine;
-using static Platformer.Core.Simulation;
 
 namespace Platformer.Mechanics
 {
@@ -12,18 +10,34 @@ namespace Platformer.Mechanics
         /// <summary>
         ///     The maximum hit points for the entity.
         /// </summary>
-        public int maxHP = 1;
+        public int maxHp = 1;
 
-        public int currentHP { get; private set; }
+        private int currentHp;
+
+        public int CurrentHp
+        {
+            get => currentHp;
+            private set
+            {
+                if (value < currentHp)
+                    animator.SetTrigger(value > 0 ? hurt : die);
+                currentHp = value;
+            }
+        }
 
         /// <summary>
         ///     Indicates if the entity should be considered 'alive'.
         /// </summary>
-        public bool IsAlive => currentHP > 0;
+        public bool IsAlive => currentHp > 0;
+
+        private Animator animator;
+        private static readonly int hurt = Animator.StringToHash("hurt");
+        private static readonly int die = Animator.StringToHash("die");
 
         private void Awake()
         {
-            currentHP = maxHP;
+            CurrentHp = maxHp;
+            animator = GetComponent<Animator>();
         }
 
         /// <summary>
@@ -31,12 +45,12 @@ namespace Platformer.Mechanics
         /// </summary>
         public void Increment()
         {
-            currentHP = Mathf.Clamp(currentHP + 1, 0, maxHP);
+            CurrentHp = Mathf.Clamp(CurrentHp + 1, 0, maxHp);
         }
-        
+
         public void Add(int value)
         {
-            currentHP = Mathf.Clamp(currentHP + value, 0, maxHP);
+            CurrentHp = Mathf.Clamp(CurrentHp + value, 0, maxHp);
         }
 
         /// <summary>
@@ -45,20 +59,12 @@ namespace Platformer.Mechanics
         /// </summary>
         public void Decrement()
         {
-            currentHP = Mathf.Clamp(currentHP - 1, 0, maxHP);
-            // if (currentHP == 0)
-            // {
-            //     var ev = Schedule<HealthIsZero>();
-            //     ev.health = this;
-            // }
+            CurrentHp = Mathf.Clamp(CurrentHp - 1, 0, maxHp);
         }
 
         /// <summary>
         ///     Decrement the HP of the entitiy until HP reaches 0.
         /// </summary>
-        public void Die()
-        {
-            while (currentHP > 0) Decrement();
-        }
+        public void Die() => CurrentHp = 0;
     }
 }

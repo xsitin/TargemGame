@@ -19,7 +19,7 @@ public class HealthBarBehaviour : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (previous!=health.currentHP) animator.SetInteger(hp, health.currentHP);
-        previous = health.currentHP;
+        if (previous!=health.CurrentHp) animator.SetInteger(hp, health.CurrentHp);
+        previous = health.CurrentHp;
     }
 }

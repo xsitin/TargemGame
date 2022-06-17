@@ -12,7 +12,7 @@ namespace Platformer.Gameplay
         public override void Execute()
         {
             var enemyHealth = BaseEnemy.health;
-            if (enemyHealth != null)
+            if (enemyHealth is { })
             {
                 enemyHealth.Decrement();
                 if (!enemyHealth.IsAlive)
@@ -22,7 +22,7 @@ namespace Platformer.Gameplay
                     if (BaseEnemy._audio && BaseEnemy.ouch)
                         BaseEnemy._audio
                             .PlayOneShot(BaseEnemy
-                                .ouch); 
+                                .ouch);
                     BaseEnemy.PushFromAttack(Player.transform.position);
                 }
             }

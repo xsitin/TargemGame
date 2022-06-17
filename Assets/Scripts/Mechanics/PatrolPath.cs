@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Platformer.Mechanics
@@ -12,10 +13,13 @@ namespace Platformer.Mechanics
         /// </summary>
         public Vector2 startPosition, endPosition;
 
-        private void Reset()
+        public Vector2 startPositionAbsolute, endPositionAbsolute;
+
+        private void Awake()
         {
-            startPosition = Vector3.left;
-            endPosition = Vector3.right;
+            var position = gameObject.transform.position;
+            startPositionAbsolute = startPosition + (Vector2)position;
+            endPositionAbsolute = endPosition + (Vector2)position;
         }
 
         /// <summary>
@@ -25,11 +29,12 @@ namespace Platformer.Mechanics
         /// <returns></returns>
         public Mover CreateMover(float speed = 1)
         {
-            if (startPosition.x > endPosition.x) 
+            if (startPosition.x > endPosition.x)
                 (startPosition, endPosition) = (endPosition, startPosition);
 
             return new Mover(this, speed);
         }
+
         public partial class Mover
         {
             private readonly Vector2 endPosition;

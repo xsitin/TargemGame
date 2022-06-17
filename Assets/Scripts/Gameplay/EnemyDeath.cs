@@ -11,7 +11,7 @@ namespace Platformer.Gameplay
     public class EnemyDeath : Simulation.Event<EnemyDeath>
     {
         public BaseEnemy enemy;
-        private static readonly int die = Animator.StringToHash("Die");
+        private static readonly int die = Animator.StringToHash("die");
 
         public override void Execute()
         {

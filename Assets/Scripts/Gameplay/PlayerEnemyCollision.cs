@@ -16,5 +16,5 @@ namespace Platformer.Gameplay
             player.health.Decrement();
             if (!player.health.IsAlive) Schedule<HealthIsZero>();
         }
-    }
+    }   
 }

@@ -65,7 +65,7 @@ namespace Platformer.Mechanics
 
 
         public Bounds Bounds => collider2d.bounds;
-        private readonly HashSet<Collider2D> attackedEnemy = new();
+        private readonly HashSet<Collider2D> attackedEnemies = new();
         private readonly PlatformerModel model = GetModel<PlatformerModel>();
         private RaycastHit2D[] raycastResult = new RaycastHit2D[1];
 
@@ -81,6 +81,7 @@ namespace Platformer.Mechanics
         private new Rigidbody2D rigidbody2D;
         private Vector2 flippedAttackPoint;
         private ContactFilter2D gridFilter;
+        private IEnumerator HookCorutine;
 
 
         private void Start()
@@ -103,7 +104,7 @@ namespace Platformer.Mechanics
             else
                 rigidbody2D.velocity = new Vector2(0, rigidbody2D.velocity.y);
             PerformAdditionalAbilities();
-            if (attackedEnemy.Count > 0 && !Attacking) attackedEnemy.Clear();
+            if (attackedEnemies.Count > 0 && !Attacking) attackedEnemies.Clear();
             if (hookJoint is not null)
             {
                 var hookPoint = hookJoint.connectedBody.position;
@@ -114,7 +115,6 @@ namespace Platformer.Mechanics
             flippedAttackPoint =
                 new Vector2(attackPoint.position.x - (attackPointFlipX ? attackPoint.localPosition.x * 2 : 0),
                     attackPoint.position.y);
-            //Debug.Log(Enum.GetName(typeof(JumpState), jumpState));
         }
 
 
@@ -134,7 +134,10 @@ namespace Platformer.Mechanics
                     rigidbody2D.velocity.WithX(Mathf.Clamp(input + rigidbody2D.velocity.x, -maxSpeed, maxSpeed));
 
             if (jumpState is JumpState.Grounded or JumpState.FixedOnHook && Input.GetButtonDown("Jump"))
+            {
                 jumpState = JumpState.PrepareToJump;
+                HookCorutine?.MoveNext();
+            }
 
             else if (Input.GetButtonUp("Jump"))
             {
@@ -207,7 +210,8 @@ namespace Platformer.Mechanics
             joint.distance = Vector2.Distance(point.transform.position, transform.position);
             joint.connectedBody = point.GetComponent<Rigidbody2D>();
             hookJoint = joint;
-            StartCoroutine(HookCoroutine(joint));
+            HookCorutine = HookCoroutine(joint);
+            StartCoroutine(HookCorutine);
         }
 
         private IEnumerator HookCoroutine(DistanceJoint2D joint)
@@ -230,8 +234,10 @@ namespace Platformer.Mechanics
 
             hookJoint = null;
             hookLine.positionCount = 0;
-            jumpState = JumpState.InFlight;
+            if (jumpState is JumpState.FixedOnHook or JumpState.Hooked)
+                jumpState = JumpState.InFlight;
             Destroy(joint);
+            HookCorutine = null;
         }
 
         private GameObject FindHookPoint()
@@ -265,16 +271,16 @@ namespace Platformer.Mechanics
 
         public void AttackedUpdate()
         {
-            var attackedEnemies = Physics2D.OverlapCircleAll(flippedAttackPoint, attackRange,
+            var overlapEnemies = Physics2D.OverlapCircleAll(flippedAttackPoint, attackRange,
                 enemyLayer);
-            foreach (var enemy in attackedEnemies)
+            foreach (var enemy in overlapEnemies)
             {
-                if (attackedEnemy.Contains(enemy)) continue;
+                if (attackedEnemies.Contains(enemy) || enemy.isTrigger) continue;
                 var enemyController = enemy.GetComponent<BaseEnemy>();
                 var ev = Schedule<PlayerEnemyAttack>();
                 ev.BaseEnemy = enemyController;
                 ev.Player = this;
-                attackedEnemy.Add(enemy);
+                attackedEnemies.Add(enemy);
             }
         }
 
