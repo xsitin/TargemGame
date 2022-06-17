@@ -11,11 +11,11 @@ public class LevelScrollScript : MonoBehaviour
 
     public void OnLeftButtonClick()
     {
-        ScrollRect.horizontalNormalizedPosition += (float)ScrollByClick / (ScrollRect.content.childCount - 3);
+        ScrollRect.horizontalNormalizedPosition -= (float)ScrollByClick / (ScrollRect.content.childCount - 3);
     }
 
     public void OnRightButtonClick()
     {
-        ScrollRect.horizontalNormalizedPosition -= (float)ScrollByClick / (ScrollRect.content.childCount - 3);
+        ScrollRect.horizontalNormalizedPosition += (float)ScrollByClick / (ScrollRect.content.childCount - 3);
     }
 }

@@ -16,6 +16,5 @@ public class PlatformerJumpPad : MonoBehaviour
 
     private void AddVelocity(PlayerController player)
     {
-        player.velocity.y = verticalVelocity;
     }
 }

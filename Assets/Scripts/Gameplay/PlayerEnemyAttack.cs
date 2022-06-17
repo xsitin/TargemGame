@@ -6,30 +6,30 @@ namespace Platformer.Gameplay
 {
     public class PlayerEnemyAttack : Event<PlayerEnemyAttack>
     {
-        public EnemyController Enemy;
+        public BaseEnemy BaseEnemy;
         public PlayerController Player;
 
         public override void Execute()
         {
-            var enemyHealth = Enemy.health;
-            if (enemyHealth != null)
+            var enemyHealth = BaseEnemy.health;
+            if (enemyHealth is { })
             {
                 enemyHealth.Decrement();
                 if (!enemyHealth.IsAlive)
-                    Schedule<EnemyDeath>().enemy = Enemy;
+                    Schedule<EnemyDeath>().enemy = BaseEnemy;
                 else
                 {
-                    if (Enemy._audio && Enemy.ouch)
-                        Enemy._audio
-                            .PlayOneShot(Enemy
-                                .ouch); //math.sign(Player.transform.position.x - Enemy.transform.position.x) * 10
-                    Enemy.PushFromAttack(Player.transform.position);
+                    if (BaseEnemy._audio && BaseEnemy.ouch)
+                        BaseEnemy._audio
+                            .PlayOneShot(BaseEnemy
+                                .ouch);
+                    BaseEnemy.PushFromAttack(Player.transform.position);
                 }
             }
             else
-                Schedule<EnemyDeath>().enemy = Enemy;
+                Schedule<EnemyDeath>().enemy = BaseEnemy;
 
-            Debug.Log($"hit {Enemy.name}");
+            Debug.Log($"hit {BaseEnemy.name}");
         }
     }
 }

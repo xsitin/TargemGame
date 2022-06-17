@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Platformer.Core;
 using Platformer.Gameplay;
 using Platformer.Model;
 using UnityEngine;
@@ -13,18 +14,20 @@ namespace Platformer.Mechanics
     ///     This is the main class used to implement control of the player.
     ///     It is a superset of the AnimationController class, but is inlined to allow for any kind of customisation.
     /// </summary>
-    public class PlayerController : KinematicObject
+    public class PlayerController : MonoBehaviour
     {
         public enum JumpState
         {
             Grounded,
             PrepareToJump,
             Jumping,
+            Hooked,
+            FixedOnHook,
             InFlight,
             Landed
         }
 
-
+        public GameObject smokeBombPrefab;
         public AudioClip jumpAudio;
         public AudioClip respawnAudio;
         public AudioClip ouchAudio;
@@ -42,10 +45,8 @@ namespace Platformer.Mechanics
 
         public JumpState jumpState = JumpState.Grounded;
 
-        /*internal new*/
         public Collider2D collider2d;
 
-        /*internal new*/
         public AudioSource audioSource;
         public LayerMask enemyLayer;
 
@@ -56,60 +57,105 @@ namespace Platformer.Mechanics
         public bool controlEnabled = true;
         public Transform attackPoint;
         public float HookRange;
-        private readonly HashSet<Collider2D> attackedEnemy = new();
-        private readonly PlatformerModel model = GetModel<PlatformerModel>();
 
-        internal Animator animator;
-        private bool attackPointFlipX;
-        private bool dashReady = true;
-        private bool jump;
 
-        private Vector2 move;
-        private SpriteRenderer spriteRenderer;
-        private bool stopJump;
+        public bool IsGrounded { get; set; }
 
         public bool Attacking => animator.GetBool(AnimatorObjects.Attacking);
 
 
         public Bounds Bounds => collider2d.bounds;
+        private readonly HashSet<Collider2D> attackedEnemies = new();
+        private readonly PlatformerModel model = GetModel<PlatformerModel>();
+        private RaycastHit2D[] raycastResult = new RaycastHit2D[1];
 
-        private void Awake()
+        internal Animator animator;
+        private bool attackPointFlipX;
+        private bool dashReady = true;
+        private bool jump;
+        private DistanceJoint2D hookJoint;
+        private LineRenderer hookLine;
+
+        private SpriteRenderer spriteRenderer;
+        private bool stopJump;
+        private new Rigidbody2D rigidbody2D;
+        private Vector2 flippedAttackPoint;
+        private ContactFilter2D gridFilter;
+        private IEnumerator HookCorutine;
+
+
+        private void Start()
         {
+            gridFilter = new ContactFilter2D() { layerMask = LayerMask.GetMask("Grid") };
+            rigidbody2D = GetComponent<Rigidbody2D>();
             health = GetComponent<Health>();
             audioSource = GetComponent<AudioSource>();
             audioSource.volume = FindObjectOfType<SoundController>().EffectsVolume;
             collider2d = GetComponent<Collider2D>();
             spriteRenderer = GetComponent<SpriteRenderer>();
             animator = GetComponent<Animator>();
+            hookLine = gameObject.GetComponent<LineRenderer>();
         }
 
-        protected override void Update()
+        protected void Update()
         {
             if (controlEnabled)
-            {
-                var input = Input.GetAxis("Horizontal");
-                move.x = Math.Abs(move.x) > Math.Abs(input) ? 0 : input;
-                if (jumpState == JumpState.Grounded && Input.GetButtonDown("Jump"))
-                {
-                    jumpState = JumpState.PrepareToJump;
-                }
-                else if (Input.GetButtonUp("Jump"))
-                {
-                    stopJump = true;
-                    Schedule<PlayerStopJump>().player = this;
-                }
-            }
+                PerformMovement();
             else
+                rigidbody2D.velocity = new Vector2(0, rigidbody2D.velocity.y);
+            PerformAdditionalAbilities();
+            if (attackedEnemies.Count > 0 && !Attacking) attackedEnemies.Clear();
+            if (hookJoint is not null)
             {
-                move.x = 0;
+                var hookPoint = hookJoint.connectedBody.position;
+                hookLine.positionCount = 2;
+                hookLine.SetPositions(new[] { new Vector3(hookPoint.x, hookPoint.y, 1), transform.position });
             }
+
+            flippedAttackPoint =
+                new Vector2(attackPoint.position.x - (attackPointFlipX ? attackPoint.localPosition.x * 2 : 0),
+                    attackPoint.position.y);
+        }
+
+
+        private void PerformMovement()
+        {
+            var input = Input.GetAxis("Horizontal") * maxSpeed;
+            if (IsGrounded)
+
+                rigidbody2D.velocity =
+                    rigidbody2D.velocity.WithX(Math.Clamp(input, -maxSpeed,
+                        maxSpeed));
+
+            else if (Math.Abs(input) > Math.Abs(rigidbody2D.velocity.x) ||
+                     Math.Sign(input) != Math.Sign(rigidbody2D.velocity.x))
+
+                rigidbody2D.velocity =
+                    rigidbody2D.velocity.WithX(Mathf.Clamp(input + rigidbody2D.velocity.x, -maxSpeed, maxSpeed));
+
+            if (jumpState is JumpState.Grounded or JumpState.FixedOnHook && Input.GetButtonDown("Jump"))
+            {
+                jumpState = JumpState.PrepareToJump;
+                HookCorutine?.MoveNext();
+            }
+
+            else if (Input.GetButtonUp("Jump"))
+            {
+                stopJump = true;
+                Schedule<PlayerStopJump>().player = this;
+            }
+        }
+
+        private void FixedUpdate()
+        {
+            var intersectionsCount = rigidbody2D.Cast(Vector2.down, gridFilter,
+                raycastResult, 0.05f);
+            IsGrounded = intersectionsCount > 0;
 
             UpdateJumpState();
-            InputUpdate();
-            if (attackedEnemy.Count > 0 && !Attacking) attackedEnemy.Clear();
-
-            base.Update();
+            ComputeVelocity();
         }
+
 
         private void OnDrawGizmosSelected()
         {
@@ -118,35 +164,32 @@ namespace Platformer.Mechanics
             Gizmos.DrawWireSphere(transform.position, HookRange);
         }
 
-        private void InputUpdate()
+        private void PerformAdditionalAbilities()
         {
             if (Input.GetKeyDown(KeyCode.G)) Schedule<PlayerDeath>();
             if (Input.GetKeyDown(KeyCode.F)) Attack();
             if (Input.GetButtonDown("Dash") && dashReady) Dash();
             if (Input.GetButtonDown("Hook")) Hook();
+            if (Input.GetButtonDown("SmokeBomb")) ThrowSmokeBomb();
+        }
+
+        private void ThrowSmokeBomb()
+        {
+            var smokeBomb = Instantiate(smokeBombPrefab, flippedAttackPoint, Quaternion.identity);
+            var rigidbody2D = smokeBomb.GetComponent<Rigidbody2D>();
+            var force = attackPointFlipX ? Vector2.left : Vector2.right;
+            force *= 10;
+            rigidbody2D.AddForce(force, ForceMode2D.Impulse);
         }
 
         private void Dash()
         {
             dashReady = false;
             var dashVector = attackPointFlipX ? Vector2.left : Vector2.right;
-            dashVector *= 10;
-            StartCoroutine(DashVelocity(dashVector));
-            StartCoroutine(DashTimeout());
-        }
-
-        private IEnumerator DashVelocity(Vector2 dashVector)
-        {
-            var begin = transform.position.x;
-            while (Math.Abs(transform.position.x - begin) < dashDistance &&
-                   Physics2D.RaycastAll(
-                       transform.position,
-                       attackPointFlipX ? Vector2.left : Vector2.right, 1
-                       , LayerMask.GetMask("Enemy", "Grid")).Length <= 0)
-            {
-                targetVelocity += dashVector;
-                yield return null;
-            }
+            dashVector *= dashDistance;
+            rigidbody2D.MovePosition(rigidbody2D.position + dashVector);
+            if (dashTimeout > 0) StartCoroutine(DashTimeout());
+            else dashReady = true;
         }
 
         private IEnumerator DashTimeout()
@@ -157,57 +200,87 @@ namespace Platformer.Mechanics
 
         private void Hook()
         {
-            var point = FindHookPoint();
-            if (!point.HasValue)
+            if (jumpState == JumpState.FixedOnHook)
                 return;
-            StartCoroutine(HookCoroutine(point.Value));
+            var point = FindHookPoint();
+            if (point == null)
+                return;
+            jumpState = JumpState.Hooked;
+            var joint = gameObject.AddComponent<DistanceJoint2D>();
+            joint.distance = Vector2.Distance(point.transform.position, transform.position);
+            joint.connectedBody = point.GetComponent<Rigidbody2D>();
+            hookJoint = joint;
+            HookCorutine = HookCoroutine(joint);
+            StartCoroutine(HookCorutine);
         }
 
-        private IEnumerator HookCoroutine(Vector2 to)
+        private IEnumerator HookCoroutine(DistanceJoint2D joint)
         {
-            while (Input.GetButton("Hook"))
+            while (jumpState is JumpState.Hooked or JumpState.FixedOnHook && Input.GetButton("Hook"))
             {
-                var direction = (to - (Vector2)transform.position).normalized;
-                velocity.y += direction.y;
-                targetVelocity.x += direction.x * 10;
-                yield return null;
+                joint.distance = Math.Clamp(joint.distance - 0.08f, 0f, 1000f);
+                if (joint.distance <= 0.01)
+                    jumpState = JumpState.FixedOnHook;
+                yield return new WaitForFixedUpdate();
             }
+
+
+            if (joint.distance > 0.1f)
+            {
+                var direction = joint.connectedBody.transform.position - transform.position;
+                direction = direction.normalized;
+                rigidbody2D.AddForce(direction * 7, ForceMode2D.Impulse);
+            }
+
+            hookJoint = null;
+            hookLine.positionCount = 0;
+            if (jumpState is JumpState.FixedOnHook or JumpState.Hooked)
+                jumpState = JumpState.InFlight;
+            Destroy(joint);
+            HookCorutine = null;
         }
 
-        private Vector2? FindHookPoint()
+        private GameObject FindHookPoint()
         {
             var points = Physics2D.OverlapCircleAll(transform.position, HookRange, LayerMask.GetMask("HookPoints"));
             if (points.Length < 1)
                 return null;
 
             var orderedByDistancePoints = points
-                .Select(x => (x, Vector2.Distance(x.transform.position, transform.position)))
+                .Select(x =>
+                {
+                    var distance = Vector2.Distance(x.transform.position, transform.position);
+                    if (attackPointFlipX && x.transform.position.x - transform.position.x > 0) distance += HookRange;
+                    else if (!attackPointFlipX && x.transform.position.x - transform.position.x < 0)
+                    {
+                        distance += HookRange;
+                    }
+
+                    return (x, distance);
+                })
                 .OrderBy(y => y.Item2).ToArray();
-            if (orderedByDistancePoints.Length < 2 ||
+            if (orderedByDistancePoints.Length >= 2 &&
                 Math.Abs(orderedByDistancePoints[0].Item2 - orderedByDistancePoints[1].Item2) < 0.5f)
                 return !(attackPointFlipX ^ (orderedByDistancePoints[0].x.transform.position.x <
                                              orderedByDistancePoints[1].x.transform.position.x))
-                    ? orderedByDistancePoints[0].x.transform.position
-                    : orderedByDistancePoints[1].x.transform.position;
+                    ? orderedByDistancePoints[0].x.gameObject
+                    : orderedByDistancePoints[1].x.gameObject;
 
-            return orderedByDistancePoints[0].x.transform.position;
+            return orderedByDistancePoints[0].x.gameObject;
         }
 
         public void AttackedUpdate()
         {
-            var flippedAttackPoint =
-                new Vector2(attackPoint.position.x - (attackPointFlipX ? attackPoint.localPosition.x * 2 : 0),
-                    attackPoint.position.y);
-            var attackedEnemies = Physics2D.OverlapCircleAll(flippedAttackPoint, attackRange,
+            var overlapEnemies = Physics2D.OverlapCircleAll(flippedAttackPoint, attackRange,
                 enemyLayer);
-            foreach (var enemy in attackedEnemies)
+            foreach (var enemy in overlapEnemies)
             {
-                if (attackedEnemy.Contains(enemy)) continue;
-                var enemyController = enemy.GetComponent<EnemyController>();
+                if (attackedEnemies.Contains(enemy) || enemy.isTrigger) continue;
+                var enemyController = enemy.GetComponent<BaseEnemy>();
                 var ev = Schedule<PlayerEnemyAttack>();
-                ev.Enemy = enemyController;
+                ev.BaseEnemy = enemyController;
                 ev.Player = this;
-                attackedEnemy.Add(enemy);
+                attackedEnemies.Add(enemy);
             }
         }
 
@@ -227,11 +300,8 @@ namespace Platformer.Mechanics
                     stopJump = false;
                     break;
                 case JumpState.Jumping:
-                    if (!IsGrounded)
-                    {
-                        Schedule<PlayerJumped>().player = this;
-                        jumpState = JumpState.InFlight;
-                    }
+                    Schedule<PlayerJumped>().player = this;
+                    jumpState = JumpState.InFlight;
 
                     break;
                 case JumpState.InFlight:
@@ -248,35 +318,40 @@ namespace Platformer.Mechanics
             }
         }
 
-        protected override void ComputeVelocity()
+        protected void ComputeVelocity()
         {
-            if (jump && IsGrounded)
+            if (jump && (IsGrounded || jumpState == JumpState.Jumping))
             {
-                velocity.y = jumpTakeOffSpeed * model.jumpModifier;
+                rigidbody2D.AddForce(new Vector2(0, jumpTakeOffSpeed * model.jumpModifier), ForceMode2D.Impulse);
                 jump = false;
             }
-            else if (stopJump)
-            {
-                stopJump = false;
-                if (velocity.y > 0) velocity.y *= model.jumpDeceleration;
-            }
+            else if (stopJump) stopJump = false;
 
-            if (move.x > 0.01f)
+            switch (rigidbody2D.velocity.x)
             {
-                attackPointFlipX = false;
-                spriteRenderer.flipX = false;
-            }
-            else if (move.x < -0.01f)
-            {
-                attackPointFlipX = true;
-                spriteRenderer.flipX = true;
+                case > 0.01f:
+                    attackPointFlipX = false;
+                    spriteRenderer.flipX = false;
+                    break;
+                case < -0.01f:
+                    attackPointFlipX = true;
+                    spriteRenderer.flipX = true;
+                    break;
             }
 
             animator.SetBool(AnimatorObjects.Grounded, IsGrounded);
-            animator.SetFloat(AnimatorObjects.VelocityX, Mathf.Abs(velocity.x) / maxSpeed);
+            animator.SetFloat(AnimatorObjects.VelocityX, Mathf.Abs(rigidbody2D.velocity.x) / maxSpeed);
+        }
 
-            targetVelocity += move * maxSpeed;
-            move.x = 0;
+        public void Teleport(Vector2 position)
+        {
+            rigidbody2D.position = position;
+            rigidbody2D.velocity = Vector2.zero;
+        }
+
+        public void AddForce(Vector2 force)
+        {
+            rigidbody2D.AddForce(force, ForceMode2D.Impulse);
         }
 
         public static class AnimatorObjects
