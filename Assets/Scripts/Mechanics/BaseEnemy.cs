@@ -9,6 +9,12 @@ namespace Platformer.Mechanics
         public Health health { get; set; }
         public AudioSource _audio { get; set; }
         public AudioClip ouch { get; set; }
+        public bool inSmoke { get; set; }
         public abstract void PushFromAttack(Vector2 position);
+
+        public void Die()
+        {
+            Destroy(gameObject);
+        }
     }
 }
