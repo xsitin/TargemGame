@@ -20,7 +20,6 @@ namespace Platformer.Gameplay
             {
                 player.health.Die();
             }
-
             // player.collider.enabled = false;
             player.controlEnabled = false;
 

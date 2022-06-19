@@ -54,9 +54,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   smokeBombPrefab: {fileID: 3743283225504728294, guid: dff3491da0f1c9a488c7f9417d286630,
     type: 3}
-  jumpAudio: {fileID: 8300000, guid: 67975c08d56ceb147bad38572d805aa8, type: 3}
-  respawnAudio: {fileID: 8300000, guid: e18959d46b63f3c4c8cc020a433cf848, type: 3}
-  ouchAudio: {fileID: 8300000, guid: 6c05149e5a2fba64ba172e25a61074b7, type: 3}
+  jumpAudio: {fileID: 8300000, guid: a950eafbfb387d74e9d13accbee28690, type: 3}
+  respawnAudio: {fileID: 8300000, guid: 30d64dd9f125e054f857f2fe490ea818, type: 3}
+  ouchAudio: {fileID: 0}
+  hookAudio: {fileID: 8300000, guid: c9f4fc319356b954d9e25f7ede722b8d, type: 3}
+  attackAudio: {fileID: 8300000, guid: 0dd40deb52589bb4aae8208bbc136ac9, type: 3}
   dashDistance: 2.02
   maxSpeed: 3
   jumpTakeOffSpeed: 7
@@ -273,7 +275,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffad43bb006db4856a9c527b89b48db9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHP: 5
+  maxHp: 5
 --- !u!70 &1213308520
 CapsuleCollider2D:
   m_ObjectHideFlags: 0

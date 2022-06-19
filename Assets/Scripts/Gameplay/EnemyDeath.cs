@@ -1,3 +1,4 @@
+using System.Linq;
 using Platformer.Core;
 using Platformer.Mechanics;
 using UnityEngine;
@@ -17,7 +18,11 @@ namespace Platformer.Gameplay
         {
             if (enemy._audio && enemy.ouch)
                 enemy._audio.PlayOneShot(enemy.ouch);
-            enemy.GetComponent<Animator>().SetTrigger(die);
+            var animator = enemy.GetComponent<Animator>();
+            if (animator.parameters.Any(x => x.nameHash == die))
+                animator.SetTrigger(die);
+            else
+                enemy.Die();
         }
     }
 }

@@ -6,6 +6,13 @@ using UnityEngine;
 public class SmokeBombScript : MonoBehaviour
 {
     private HashSet<BaseEnemy> inSmoke = new HashSet<BaseEnemy>();
+    public AudioClip smokeAudio;
+
+    private void Start()
+    {
+        if (smokeAudio is { })
+            GetComponent<AudioSource>().PlayOneShot(smokeAudio);
+    }
 
     private void OnTriggerStay2D(Collider2D other)
     {

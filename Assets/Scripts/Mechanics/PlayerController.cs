@@ -31,6 +31,8 @@ namespace Platformer.Mechanics
         public AudioClip jumpAudio;
         public AudioClip respawnAudio;
         public AudioClip ouchAudio;
+        public AudioClip hookAudio;
+        public AudioClip attackAudio;
         public float dashDistance;
 
         /// <summary>
@@ -212,6 +214,8 @@ namespace Platformer.Mechanics
             hookJoint = joint;
             HookCorutine = HookCoroutine(joint);
             StartCoroutine(HookCorutine);
+            if (hookAudio is { })
+                audioSource.PlayOneShot(hookAudio);
         }
 
         private IEnumerator HookCoroutine(DistanceJoint2D joint)
@@ -287,6 +291,10 @@ namespace Platformer.Mechanics
         private void Attack()
         {
             animator.SetTrigger(AnimatorObjects.Attack);
+            if (attackAudio is { })
+            {
+                audioSource.PlayOneShot(attackAudio);
+            }
         }
 
         private void UpdateJumpState()
