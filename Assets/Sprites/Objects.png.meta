@@ -182,8 +182,8 @@ TextureImporter:
       name: Objects_3
       rect:
         serializedVersion: 2
-        x: 0
-        y: 24
+        x: 72
+        y: 48
         width: 24
         height: 24
       alignment: 0
@@ -203,8 +203,8 @@ TextureImporter:
       name: Objects_4
       rect:
         serializedVersion: 2
-        x: 24
-        y: 24
+        x: 96
+        y: 48
         width: 24
         height: 24
       alignment: 0
@@ -224,7 +224,7 @@ TextureImporter:
       name: Objects_5
       rect:
         serializedVersion: 2
-        x: 48
+        x: 0
         y: 24
         width: 24
         height: 24
@@ -245,8 +245,8 @@ TextureImporter:
       name: Objects_6
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
+        x: 24
+        y: 24
         width: 24
         height: 24
       alignment: 0
@@ -266,8 +266,8 @@ TextureImporter:
       name: Objects_7
       rect:
         serializedVersion: 2
-        x: 24
-        y: 0
+        x: 48
+        y: 24
         width: 24
         height: 24
       alignment: 0
@@ -287,8 +287,8 @@ TextureImporter:
       name: Objects_8
       rect:
         serializedVersion: 2
-        x: 48
-        y: 0
+        x: 72
+        y: 24
         width: 24
         height: 24
       alignment: 0
@@ -300,6 +300,111 @@ TextureImporter:
       bones: []
       spriteID: ddec3b8c53790de4e80704f2e6273e27
       internalID: -1338460156
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Objects_9
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 24
+        width: 24
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c4962c7f5b36336428963af7222b7d90
+      internalID: 242548425
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Objects_10
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 24
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f289368e4b2336241a8e50c502ab8588
+      internalID: -1002917662
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Objects_11
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 0
+        width: 24
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2bf43acd143d7944b8e8d083fa2e9d30
+      internalID: 145997659
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Objects_12
+      rect:
+        serializedVersion: 2
+        x: 72
+        y: 0
+        width: 24
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 22d907924db431749b426fa917c5dcfa
+      internalID: -2041919342
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Objects_13
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 0
+        width: 24
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9508e0d9bb7bad7448e9b65b92fcf0e8
+      internalID: 917778067
       vertices: []
       indices: 
       edges: []
@@ -317,13 +422,18 @@ TextureImporter:
     nameFileIdTable:
       Objects_3: -1768982649
       Objects_7: 815870764
+      Objects_13: 917778067
+      Objects_12: -2041919342
       Objects_5: 1197162447
       Objects_6: -1454052107
       Objects_0: 503629372
       Objects_2: -1580697049
+      Objects_9: 242548425
       Objects_4: -1494902932
       Objects_1: -283984681
       Objects_8: -1338460156
+      Objects_11: 145997659
+      Objects_10: -1002917662
   spritePackingTag: 
   pSDRemoveMatte: 0
   pSDShowRemoveMatteOption: 0
