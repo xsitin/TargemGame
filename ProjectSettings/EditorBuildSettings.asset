@@ -15,10 +15,10 @@ EditorBuildSettings:
     path: Assets/Scenes/Levels/SampleScene.unity
     guid: 2cda990e2423bbf4892e6590ba056729
   - enabled: 0
-    path: Assets/Scenes/Levels/FirstLevel(d).unity
+    path: 
     guid: f6e503834016fa64b8ab7671d32aa445
   - enabled: 0
-    path: Assets/Scenes/Levels/SecondLevel(d).unity
+    path: 
     guid: db7c52b34c6b08a4f8ba52975b281970
   - enabled: 1
     path: Assets/Scenes/Levels/SecondLevelReleaseV.unity
@@ -26,4 +26,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Levels/FirstLevelReleaseV.unity
     guid: 7ffe6dae4200f694a98b566a046e5948
+  - enabled: 1
+    path: Assets/Scenes/Levels/LoreLevel.unity
+    guid: e77a1b6a707f27344b4c9b210b3e4929
   m_configObjects: {}

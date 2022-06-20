@@ -52,6 +52,8 @@ public class SoundController : MonoBehaviour
     private void Awake()
     {
         Sync();
+        EffectsVolume = 0.5f;
+        MusicVolume = 0.5f;
     }
 
     public void Sync()
