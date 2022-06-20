@@ -1,3 +1,4 @@
+using System.Linq;
 using Platformer.Core;
 using Platformer.Mechanics;
 using UnityEngine;
@@ -15,10 +16,13 @@ namespace Platformer.Gameplay
 
         public override void Execute()
         {
-            enemy.GetComponent<Collider2D>().enabled = false;
             if (enemy._audio && enemy.ouch)
                 enemy._audio.PlayOneShot(enemy.ouch);
-            enemy.GetComponent<Animator>().SetTrigger(die);
+            var animator = enemy.GetComponent<Animator>();
+            if (animator.parameters.Any(x => x.nameHash == die))
+                animator.SetTrigger(die);
+            else
+                enemy.Die();
         }
     }
 }

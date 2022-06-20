@@ -1,3 +1,5 @@
+using System;
+using Cinemachine;
 using Platformer.Core;
 using Platformer.Model;
 using UnityEngine;
@@ -18,6 +20,13 @@ namespace Platformer.Mechanics
         //conveniently configured inside the inspector.
         public PlatformerModel model = Simulation.GetModel<PlatformerModel>();
         public static GameController Instance { get; private set; }
+
+        private void Awake()
+        {
+            model.player = FindObjectOfType<PlayerController>();
+            model.spawnPoint = GameObject.Find("SpawnPoint").transform;
+            model.virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
+        }
 
         private void Update()
         {

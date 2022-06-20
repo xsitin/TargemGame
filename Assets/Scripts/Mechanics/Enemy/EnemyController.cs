@@ -7,7 +7,7 @@ using Platformer.Mechanics;
 using UnityEngine;
 using Random = System.Random;
 
-public class EnemyController : BaseEnemy        
+public class EnemyController : BaseEnemy
 {
     public enum State
     {
@@ -37,6 +37,7 @@ public class EnemyController : BaseEnemy
     public float runSpeed;
     private float attackDistance;
     private static readonly Random random = new(DateTime.Now.Millisecond);
+    private bool attacking = false;
 
     void Start()
     {
@@ -60,13 +61,22 @@ public class EnemyController : BaseEnemy
 
     private void FixedUpdate()
     {
-        if (CurrentState == State.Patrol) Patrol();
-        if (CurrentState == State.Angry) AttackPlayer();
-        if (CurrentState is State.Search or State.Idle)
-        {
+        if (inSmoke)
             Wait();
-            StartCoroutine(BeginPatrol());
-        }
+        else
+            switch (CurrentState)
+            {
+                case State.Patrol:
+                    Patrol();
+                    break;
+                case State.Angry:
+                    AttackPlayer();
+                    break;
+                case State.Search or State.Idle:
+                    Wait();
+                    StartCoroutine(BeginPatrol());
+                    break;
+            }
     }
 
     private IEnumerator BeginPatrol()
@@ -79,8 +89,9 @@ public class EnemyController : BaseEnemy
 
     private void Wait()
     {
+        animator.SetFloat(velocityX, 0);
         rigidbody.velocity = new Vector2(0, rigidbody.velocity.y);
-        if (player is not null && Math.Abs(player.transform.position.x - transform.position.x) < 5)
+        if (!inSmoke && player is not null && Math.Abs(player.transform.position.x - transform.position.x) < 5)
             MoveTo(player.transform.position - transform.position);
     }
 
@@ -88,19 +99,25 @@ public class EnemyController : BaseEnemy
     {
         var distance = Math.Abs(player.transform.position.x - transform.position.x);
         if (distance > attackRange * 2) MoveTo(player.transform.position - transform.position);
-        else Attack();
+        else
+        {
+            Attack();
+        }
     }
 
     private void Attack()
     {
-        animator.SetTrigger(attack);
+        if (!attacking)
+        {
+            animator.SetTrigger(attack);
+            attacking = true;
+        }
+
+        rigidbody.constraints = RigidbodyConstraints2D.FreezeAll;
     }
 
     public void AttackUpdate()
     {
-        if (rigidbody.velocity.x > 0.1)
-            rigidbody.velocity = rigidbody.velocity.WithX(0);
-
         var attacked = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, playerLayer);
         for (var index = 0; index < attacked.Length; index++)
         {
@@ -116,6 +133,8 @@ public class EnemyController : BaseEnemy
     public void ClearAttacked()
     {
         Attacked.Clear();
+        rigidbody.constraints = RigidbodyConstraints2D.FreezeRotation;
+        attacking = false;
     }
 
     private void Patrol()

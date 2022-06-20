@@ -11,7 +11,7 @@ namespace Platformer.Gameplay
 
         public override void Execute()
         {
-            var enemyHealth = BaseEnemy.health;
+            var enemyHealth = BaseEnemy?.health;
             if (enemyHealth is { })
             {
                 enemyHealth.Decrement();
@@ -28,8 +28,6 @@ namespace Platformer.Gameplay
             }
             else
                 Schedule<EnemyDeath>().enemy = BaseEnemy;
-
-            Debug.Log($"hit {BaseEnemy.name}");
         }
     }
 }

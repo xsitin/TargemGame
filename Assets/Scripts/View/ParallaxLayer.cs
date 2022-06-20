@@ -14,15 +14,17 @@ namespace Platformer.View
         public Vector3 movementScale = Vector3.one;
 
         private Transform _camera;
+        private Vector3 StartPosition;
 
         private void Awake()
         {
             _camera = Camera.main.transform;
+            StartPosition = transform.position;
         }
 
         private void LateUpdate()
         {
-            transform.position = Vector3.Scale(_camera.position, movementScale);
+            transform.position = StartPosition + Vector3.Scale(_camera.position, movementScale);
         }
     }
 }
